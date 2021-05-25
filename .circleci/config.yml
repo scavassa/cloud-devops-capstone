@@ -31,7 +31,7 @@ commands:
                 echo -e "EKS Cluster status : CREATE IN PROGRESS \n"
                 sleep 10
               elif [[ $(aws cloudformation describe-stacks --region ${AWS_DEFAULT_REGION} \
-                --stack-name $EKS_STACK_NAME --query "Stacks[*].StackStatus" \
+                --stack-name ${STACK_NAME} --query "Stacks[*].StackStatus" \
                 --output text) == CREATE_COMPLETE ]]
               then
                 echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
