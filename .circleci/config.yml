@@ -20,6 +20,7 @@ commands:
               ParameterKey=pDBPass,ParameterValue=${DB_PASS}
       - run:
           name: Wait until creation is finished
+          when: on_fail
           command: |
             started_date=$(date '+%H:%M:%S')
             start=`date +%s`
