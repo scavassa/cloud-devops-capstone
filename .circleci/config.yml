@@ -36,6 +36,7 @@ jobs:
                   --output text) == CREATE_COMPLETE ]]
                   echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
                   break
+                fi
               done
       - run:
           name: Store RDS Instance Name
