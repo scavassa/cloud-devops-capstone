@@ -3,56 +3,6 @@ version: 2.1
 orbs:
   slack: circleci/slack@4.2.1
 
-
-commands:
-  create-environment:
-    description: Create the stack through cloudformation if it does not exist.
-    steps:
-      - run:
-          name: Create environments
-          when: on_fail
-          command: |
-            aws cloudformation create-stack --stack-name ${STACK_NAME} \
-              --region ${AWS_DEFAULT_REGION} --template-body file://infrastructure.yml \
-              --capabilities CAPABILITY_NAMED_IAM --parameters \
-              ParameterKey=pDBName,ParameterValue=${DB_NAME} \
-              ParameterKey=pDBUser,ParameterValue=${DB_USER} \
-              ParameterKey=pDBPass,ParameterValue=${DB_PASS}
-      - run:
-          name: Wait until creation is finished
-          when: on_fail
-          command: |
-            started_date=$(date '+%H:%M:%S')
-            start=`date +%s`
-            while true; do 
-              if [[ $(aws cloudformation describe-stacks --region ${AWS_DEFAULT_REGION} \
-                --stack-name ${STACK_NAME} --query "Stacks[*].StackStatus" \
-                --output text) == CREATE_IN_PROGRESS ]]
-              then
-                echo -e "EKS Cluster status : CREATE IN PROGRESS \n"
-                sleep 10
-              elif [[ $(aws cloudformation describe-stacks --region ${AWS_DEFAULT_REGION} \
-                --stack-name ${STACK_NAME} --query "Stacks[*].StackStatus" \
-                --output text) == CREATE_COMPLETE ]]
-              then
-                echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
-                end=`date +%s`
-                runtime=$((end-start))
-                finished_date=$(date '+%H:%M:%S')
-                echo "started at :" $started_date 
-                echo "finished at :" $finished_date
-                hours=$((runtime / 3600)); minutes=$(( (runtime % 3600) / 60 )); \
-                  seconds=$(( (runtime % 3600) % 60 )); \
-                  echo "Total time : $hours h $minutes min $seconds sec"
-                break
-              else
-                echo -e "EKS Cluster status : $(aws cloudformation describe-stacks \
-                  --region ${AWS_DEFAULT_REGION} --stack-name ${STACK_NAME} \
-                  --query "Stacks[*].StackStatus" --output text) \n"
-                break
-              fi
-            done
-
             
 jobs:
   create-infrastructure:
@@ -61,11 +11,33 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Check if Infrastructure Exists
+          name: Check If Infrastructure Exists, Creates It If Doesn't
           command: |
-            aws cloudformation --region ${AWS_DEFAULT_REGION} \
-              describe-stacks --stack-name ${STACK_NAME}
-      - create-environment
+            if [[ $(aws cloudformation --region ${AWS_DEFAULT_REGION} \
+              describe-stacks --stack-name ${STACK_NAME} --output text) ]]
+            then
+              echo Stack Exists, nothing to do
+            elif
+              aws cloudformation create-stack --stack-name ${STACK_NAME} \
+                --region ${AWS_DEFAULT_REGION} --template-body file://infrastructure.yml \
+                --capabilities CAPABILITY_NAMED_IAM --parameters \
+                ParameterKey=pDBName,ParameterValue=${DB_NAME} \
+                ParameterKey=pDBUser,ParameterValue=${DB_USER} \
+                ParameterKey=pDBPass,ParameterValue=${DB_PASS}
+              while true; do 
+                if [[ $(aws cloudformation describe-stacks --region ${AWS_DEFAULT_REGION} \
+                  --stack-name ${STACK_NAME} --query "Stacks[*].StackStatus" \
+                  --output text) == CREATE_IN_PROGRESS ]]
+                then
+                  echo -e "EKS Cluster status : CREATE IN PROGRESS \n"
+                  sleep 10
+                elif [[ $(aws cloudformation describe-stacks --region ${AWS_DEFAULT_REGION} \
+                  --stack-name ${STACK_NAME} --query "Stacks[*].StackStatus" \
+                  --output text) == CREATE_COMPLETE ]]
+                then
+                  echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
+                  break
+              done
       - run:
           name: Store RDS Instance Name
           command: |
