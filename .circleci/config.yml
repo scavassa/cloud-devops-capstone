@@ -17,7 +17,7 @@ jobs:
               describe-stacks --stack-name ${STACK_NAME} --output text) ]]
             then
               echo Stack Exists, nothing to do
-            elif
+            else
               aws cloudformation create-stack --stack-name ${STACK_NAME} \
                 --region ${AWS_DEFAULT_REGION} --template-body file://infrastructure.yml \
                 --capabilities CAPABILITY_NAMED_IAM --parameters \
@@ -34,10 +34,12 @@ jobs:
                 elif [[ $(aws cloudformation describe-stacks --region ${AWS_DEFAULT_REGION} \
                   --stack-name ${STACK_NAME} --query "Stacks[*].StackStatus" \
                   --output text) == CREATE_COMPLETE ]]
+                then
                   echo -e "EKS Cluster status : SUCCESSFULLY CREATED \n"
                   break
                 fi
               done
+            fi
       - run:
           name: Store RDS Instance Name
           command: |
