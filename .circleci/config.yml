@@ -15,7 +15,9 @@ commands:
             aws cloudformation create-stack --stack-name ${STACK_NAME} \
               --region ${AWS_DEFAULT_REGION} --template-body file://infrastructure.yml \
               --capabilities CAPABILITY_NAMED_IAM --parameters \
-              pDBName=${DB_NAME}, pDBUser=${DB_USER}, pDBPass=${DB_PASS}
+              ParameterKey=pDBName, ParameterValue=${DB_NAME} \
+              ParameterKey=pDBUser, ParameterValue=${DB_USER} \
+              ParameterKey=pDBPass, ParameterValue=${DB_PASS}
       - run:
           name: Wait until creation is finished
           command: |
