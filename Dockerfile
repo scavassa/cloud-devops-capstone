@@ -1,5 +1,6 @@
 FROM python:3.6.13
 
+ENV ALLOWED_HOSTS=*
 WORKDIR /helios-server
 COPY /app .
 RUN python -m venv .
