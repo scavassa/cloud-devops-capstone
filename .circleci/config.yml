@@ -79,7 +79,7 @@ jobs:
           name: Build Docker Image
           command: |
               docker build . -t scavassa/cloud-devops-capstone:latest
-      -run:
+      - run:
           name: Push Docker Image
           command: |
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
