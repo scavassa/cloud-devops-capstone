@@ -130,7 +130,7 @@ jobs:
           command: |
             kubectl run cloud-devops-capstone \
             --image=scavassa/cloud-devops-capstone:latest --port=8000
-      -run:
+      - run:
           name: Expose Deploymnet Through a Load Balancer
           command: |
             kubectl expose deployment cloud-devops-capstone \
