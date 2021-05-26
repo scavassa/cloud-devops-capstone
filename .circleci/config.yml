@@ -41,16 +41,51 @@ jobs:
               done
             fi
       - run:
-          name: Store RDS Instance Name
+          name: Store RDS Instance
           command: |
             export RDS_ID=$(aws cloudformation --region ${AWS_DEFAULT_REGION} \
               describe-stacks --stack-name ${STACK_NAME} \
               --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue" \
               --output text)
-            echo ${RDS_ID}
             export RDS_DNS=$(aws rds describe-db-instances --db-instance-identifier ${RDS_ID} \
               --query "DBInstances[0].[Endpoint.Address]" --output text)
-            echo ${RDS_DNS}
+            export DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@${RDS_DNS}:5432/${DB_NAME}
+            curl -H "Content-Type: text/plain" \
+              -H "token: d5337210-32aa-45f1-943a-afe0c170b51e" \
+              --request PUT --data "${DATABASE_URL}" \
+              https://api.memstash.io/values/DATABASE_URL
+
+  linting:
+    docker:
+      - image: alpine:latest
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+              wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.4.1/hadolint-Linux-x86_64
+              chmod +x /bin/hadolint
+      - run:
+          name: Lint Dockerfile
+          command: |
+              hadolint Dockerfile
+
+    
+  build-image:
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker Image
+          command: |
+              docker build . -t scavassa/cloud-devops-capstone:latest
+      -run:
+          name: Push Docker Image
+          command: |
+              docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+              docker push ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+
+
 
             
 
@@ -58,3 +93,6 @@ workflows:
   default:
     jobs:
       - create-infrastructure
+      - linting
+      - build-image:
+          requires: [linting]
