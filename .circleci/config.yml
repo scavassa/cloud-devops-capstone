@@ -133,7 +133,7 @@ jobs:
       - run:
           name: Expose Deploymnet Through a Load Balancer
           command: |
-            kubectl expose deployment cloud-devops-capstone \
+            kubectl expose pod cloud-devops-capstone \
             --type=LoadBalancer --port=80 --target-port=8000
             
 
@@ -145,6 +145,6 @@ workflows:
       - build-image:
           requires: [linting]
       - make-migrations:
-          requires: [build-image]
+          requires: [create-infrastructure, build-image]
       - deploy-pod:
-          requires: [create-infrastructure, make-migrations]
+          requires: [make-migrations]
