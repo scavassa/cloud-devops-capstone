@@ -72,6 +72,8 @@ jobs:
 
     
   build-image:
+    docker:
+      - image: circleci/buildpack-deps
     steps:
       - checkout
       - setup_remote_docker
