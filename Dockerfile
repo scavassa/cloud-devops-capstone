@@ -1,6 +1,7 @@
 FROM python:3.6.13
 
 ENV ALLOWED_HOSTS=*
+ENV DATABASE_URL=postgres://postgres:H3li0s2021\!\-@helios-capstone-dbinstance.cs5q5jrxvezc.us-east-2.rds.amazonaws.com:5432/helios
 WORKDIR /helios-server
 COPY /app .
 RUN python -m venv .
