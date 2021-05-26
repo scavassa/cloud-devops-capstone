@@ -70,7 +70,6 @@ jobs:
           command: |
               hadolint Dockerfile
 
-    
   build-image:
     docker:
       - image: circleci/buildpack-deps
@@ -87,8 +86,55 @@ jobs:
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               docker push ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
 
+  make-migrations:
+    docker:
+      - image: ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+    steps:
+      - checkout
+      - run:
+          name: Make Migrations
+          command: |
+            export DATABASE_URL=$(curl -H "Content-Type: text/plain" \
+              -H "token: d5337210-32aa-45f1-943a-afe0c170b51e" \
+              --request GET https://api.memstash.io/values/DATABASE_URL)
+            source bin/activate
+            python manage.py makemigrations
+            python manage.py migrate
 
-
+  deploy-pod:
+    docker:
+      - image: python:slim-buster
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: |
+            apt update
+            apt install -y apt-transport-https ca-certificates curl
+            curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg \
+              https://packages.cloud.google.com/apt/doc/apt-key.gpg
+            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] \
+              https://apt.kubernetes.io/ kubernetes-xenial main" | \
+              tee /etc/apt/sources.list.d/kubernetes.list
+            apt update
+            apt install -y kubectl
+            pip3 install awscli
+      - run:
+          name: Update Kubectl Config File
+# Change the cluster name if it's not the default value assigned in infrastructure.yml
+          command: |
+            aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig \
+              --name EKS
+      - run:
+          name: Deploy Image
+          command: |
+            kubectl run cloud-devops-capstone \
+            --image=scavassa/cloud-devops-capstone:latest --port=8000
+      -run:
+          name: Expose Deploymnet Through a Load Balancer
+          command: |
+            kubectl expose deployment cloud-devops-capstone \
+            --type=LoadBalancer --port=80 --target-port=8000
             
 
 workflows:
@@ -98,3 +144,7 @@ workflows:
       - linting
       - build-image:
           requires: [linting]
+      - make-migrations:
+          requires: [build-image]
+      - deploy-pod:
+          requires: [create-infrastructure, make-migrations]
