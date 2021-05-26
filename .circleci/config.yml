@@ -90,8 +90,10 @@ jobs:
     docker:
       - image: ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
     steps:
+      - checkout
       - run:
           name: Make Migrations
+          working_directory: /helios-server
           command: |
             export DATABASE_URL=$(curl -H "Content-Type: text/plain" \
               -H "token: d5337210-32aa-45f1-943a-afe0c170b51e" \
