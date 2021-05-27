@@ -157,7 +157,7 @@ jobs:
               --request GET https://api.memstash.io/values/DATABASE_URL)
             export LB_HOSTNAME=http://$(kubectl -n udacity-capstone get svc \
               ${CIRCLE_PROJECT_REPONAME} | tail -1 | awk '{print $4}')
-            if [[ $(kubectl -n udacity-capstone get secrets) =~ helios-env]]
+            if [[ $(kubectl -n udacity-capstone get secrets) =~ helios-env ]]
             then
               kubectl -n udacity-capstone delete secret helios-env
             fi
