@@ -19,7 +19,7 @@
     
     EKSDesiredWorkerNode:
       Type: Number
-      Default: 2
+      Default: 3
       Description: Number of desired Worker Node.
       MinValue: 1
       MaxValue: 7
