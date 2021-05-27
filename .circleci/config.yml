@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Check If Infrastructure Exists, Creates It If Doesn't
+          name: Creates AWS Infrastructure
           command: |
             if [[ $(aws cloudformation --region ${AWS_DEFAULT_REGION} \
               describe-stacks --stack-name ${STACK_NAME} --output text) ]]
@@ -76,12 +76,14 @@ jobs:
       - run:
           name: Build Docker Image
           command: |
-              docker build . -t scavassa/cloud-devops-capstone:latest
+              docker build . -t ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+              docker image tag {CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>
       - run:
           name: Push Docker Image
           command: |
               docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
               docker push ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+              docker push ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>
 
   make-migrations:
     docker:
@@ -95,7 +97,6 @@ jobs:
             export DATABASE_URL=$(curl -H "Content-Type: text/plain" \
               -H "token: d5337210-32aa-45f1-943a-afe0c170b51e" \
               --request GET https://api.memstash.io/values/DATABASE_URL)
-            echo $(pwd)
             source bin/activate
             python manage.py makemigrations
             python manage.py migrate
@@ -125,22 +126,43 @@ jobs:
             aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig \
               --name EKS
       - run:
-          name: Deploy Container
+          name: Create Kubernetes Namespace
           command: |
             if [[ ! $(kubectl get namespaces) =~ udacity-capstone ]]
             then
               kubectl create namespace udacity-capstone
             fi
+      - run:
+          name: Create/Update Deployment
+          command: |
+            if [[ ! $(kubectl -n udacity-capstone get deployments) =~ helios-deployment ]]
+            then
+              kubectl apply -f deployment-eks.yml
+            else
+              kubectl -n udacity-capstone set image \
+              deployment/helios-deployment \
+              ${CIRCLE_PROJECT_REPONAME}=${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}:<< pipeline.number >>
+            fi
+            kubectl -n udacity-capstone rollout status deployment helios-deployment
+      - run:
+          name: Update Environment Variables
+          command: |
             export DATABASE_URL=$(curl -H "Content-Type: text/plain" \
               -H "token: d5337210-32aa-45f1-943a-afe0c170b51e" \
               --request GET https://api.memstash.io/values/DATABASE_URL)
-            export LB_HOSTNAME=$(kubectl -n udacity-capstone get svc \
-              cloud-devops-capstone | tail -1 | awk '{print $4}')
+            export LB_HOSTNAME=http://$(kubectl -n udacity-capstone get svc \
+              ${CIRCLE_PROJECT_REPONAME} | tail -1 | awk '{print $4}')
+            if [[ $(kubectl -n udacity-capstone get secrets) =~ helios-env]]
+            then
+              kubectl -n udacity-capstone delete secret helios-env
+            fi
             kubectl -n udacity-capstone create secret generic helios-env \
               --from-literal=DATABASE_URL=${DATABASE_URL}
               --from-literal=URL_HOST=${LB_HOSTNAME}
-            kubectl apply -f deployment-eks.yml
+      - run:
+          name: Restart Pods For Variables Take Effect
             kubectl -n udacity-capstone rollout restart deployment helios-deployment
+            kubectl -n udacity-capstone rollout status deployment helios-deployment
             
 
 workflows:
