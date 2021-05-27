@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  slack: circleci/slack@4.2.1
-
             
 jobs:
   create-infrastructure:
@@ -128,25 +125,33 @@ jobs:
             aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig \
               --name EKS
       - run:
-          name: Deploy Image
+          name: Deploy Container
           command: |
-            kubectl run cloud-devops-capstone \
-            --image=scavassa/cloud-devops-capstone:latest --port=8000
-      - run:
-          name: Expose Deploymnet Through a Load Balancer
-          command: |
-            kubectl expose pod cloud-devops-capstone \
-            --type=LoadBalancer --port=80 --target-port=8000
+            if [[ ! $(kubectl get namespaces) =~ udacity-capstone ]]
+            then
+              kubectl create namespace udacity-capstone
+            fi
+            export DATABASE_URL=$(curl -H "Content-Type: text/plain" \
+              -H "token: d5337210-32aa-45f1-943a-afe0c170b51e" \
+              --request GET https://api.memstash.io/values/DATABASE_URL)
+            export LB_HOSTNAME=$(kubectl -n udacity-capstone get svc \
+              cloud-devops-capstone | tail -1 | awk '{print $4}')
+            kubectl -n udacity-capstone create secret generic helios-env \
+              --from-literal=DATABASE_URL=${DATABASE_URL}
+              --from-literal=URL_HOST=${LB_HOSTNAME}
+            kubectl apply -f deployment-eks.yml
+            kubectl -n udacity-capstone rollout restart deployment helios-deployment
             
 
 workflows:
   default:
     jobs:
-      - create-infrastructure
       - linting
+      - create-infrastructure:
+          requires: [linting]
       - build-image:
           requires: [linting]
       - make-migrations:
-          requires: [create-infrastructure, build-image]
+          requires: [build-image, create-infrastructure]
       - deploy-pod:
           requires: [make-migrations]
