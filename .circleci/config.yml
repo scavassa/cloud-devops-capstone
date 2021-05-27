@@ -162,7 +162,7 @@ jobs:
               kubectl -n udacity-capstone delete secret helios-env
             fi
             kubectl -n udacity-capstone create secret generic helios-env \
-              --from-literal=DATABASE_URL=${DATABASE_URL}
+              --from-literal=DATABASE_URL=${DATABASE_URL} \
               --from-literal=URL_HOST=${LB_HOSTNAME}
       - run:
           name: Restart Pods For Variables Take Effect
