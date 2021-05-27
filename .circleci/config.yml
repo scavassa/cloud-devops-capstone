@@ -102,7 +102,7 @@ jobs:
             python manage.py makemigrations
             python manage.py migrate
 
-  deploy-pod:
+  deploy:
     docker:
       - image: python:slim-buster
     steps:
