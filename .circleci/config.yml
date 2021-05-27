@@ -180,5 +180,5 @@ workflows:
           requires: [linting]
       - make-migrations:
           requires: [build-image, create-infrastructure]
-      - deploy-pod:
+      - deploy:
           requires: [make-migrations]
