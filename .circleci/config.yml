@@ -174,9 +174,8 @@ jobs:
 workflows:
   default:
     jobs:
+      - create-infrastructure
       - linting
-      - create-infrastructure:
-          requires: [linting]
       - build-image:
           requires: [linting]
       - make-migrations:
