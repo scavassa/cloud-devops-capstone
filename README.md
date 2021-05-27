@@ -2,7 +2,7 @@
 
 This is the Capstone Project for the Cloud DevOps Engineer Nanodegree by Udacity
 
-## Files
+## Files/Folders
 
   * .circleci/config.yml
   * app/
@@ -20,10 +20,10 @@ This folder contains the chosen application to be deployed by this project, [Hel
 This is a YAML file containing the Kubernetes deployment and load balancer used to provision the application into AWS EKS
 
 #### Dockerfile
-File containing directives for the container
+Container file containing instructions for building the image
 
 #### infrastructure.yml
-CloudFormation YAML file that contains instructions to provide all the necessary infrastructure on AWS, including: VPC, RDS Intances, Subnets, Groups, LoadBalancers, Gateways, Workers, EKS Cluster and etc.
+CloudFormation YAML file that contains instructions to provide all the necessary infrastructure on AWS, including: VPC, RDS Intance, Subnets, Groups, LoadBalancers, Gateways, Workers, EKS Cluster and etc.
 
 ## Instructions
 
