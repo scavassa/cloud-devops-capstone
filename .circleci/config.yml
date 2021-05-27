@@ -133,7 +133,7 @@ jobs:
             then
               kubectl create namespace udacity-capstone
             fi
-            if [[ ! $(kubectl -n udacity-capstone get secrets) =~ helios-env]]
+            if [[ ! $(kubectl -n udacity-capstone get secrets) =~ helios-env ]]
             then
               kubectl -n udacity-capstone create secret generic helios-env
             fi
